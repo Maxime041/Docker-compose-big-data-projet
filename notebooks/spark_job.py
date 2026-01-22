@@ -1,8 +1,13 @@
+import os
+import time
+from hdfs import InsecureClient
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, window, avg, count
 from pyspark.sql.types import StructType, StructField, DoubleType, BooleanType, StringType, TimestampType
 
 def main():
+    os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 pyspark-shell'
+
     spark = SparkSession.builder \
         .appName("WeatherAggregation") \
         .master("spark://spark-master:7077") \
@@ -37,8 +42,20 @@ def main():
         count(col("high_wind_alert")).alias("alert_count")
     )
 
-    print("Calcul des moyennes en cours...")
     agg.show(truncate=False)
+
+    client = InsecureClient("http://namenode:9870", user="root")
+    
+    pandas_df = agg.toPandas()
+    csv_content = pandas_df.to_csv(index=False)
+    
+    hdfs_dir = "/weather_data"
+    client.makedirs(hdfs_dir)
+    
+    file_path = f"{hdfs_dir}/agg_{int(time.time())}.csv"
+    
+    with client.write(file_path, encoding='utf-8', overwrite=True) as writer:
+        writer.write(csv_content)
 
     spark.stop()
 

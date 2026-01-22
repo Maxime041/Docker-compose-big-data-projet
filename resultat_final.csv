@@ -1,0 +1,2 @@
+window,avg_temp_c,alert_count
+"Row(start=Timestamp('2026-01-22 15:00:00'), end=Timestamp('2026-01-22 15:01:00'))",12.1,3
