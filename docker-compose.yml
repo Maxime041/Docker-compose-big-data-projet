@@ -95,3 +95,4 @@ services:
 networks:
   docker_compose_big_data:
     driver: bridge
+    name: ${SHARED_NETWORK_NAME}
