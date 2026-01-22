@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    networks:
+      - docker_compose_big_data_airflow
+
+  airflow-webserver:
+    image: ${AIRFLOW_IMAGE}
+    container_name: airflow-webserver
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=${AIRFLOW_EXECUTOR}
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      - AIRFLOW__CORE__LOAD_EXAMPLES=${AIRFLOW_LOAD_EXAMPLES}
+      - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=true
+      - _PIP_ADDITIONAL_REQUIREMENTS=kafka-python hdfs
+    volumes:
+      - ./dags:/opt/airflow/dags
+    ports:
+      - "${AIRFLOW_WEBSERVER_HOST_PORT}:8080"
+    command: webserver
+    networks:
+      - docker_compose_big_data_airflow
+
+  airflow-scheduler:
+    image: ${AIRFLOW_IMAGE}
+    container_name: airflow-scheduler
+    depends_on:
+      - postgres
+      - airflow-webserver
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=${AIRFLOW_EXECUTOR}
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      - AIRFLOW__CORE__LOAD_EXAMPLES=${AIRFLOW_LOAD_EXAMPLES}
+      - _PIP_ADDITIONAL_REQUIREMENTS=kafka-python hdfs
+    volumes:
+      - ./dags:/opt/airflow/dags
+    command: scheduler
+    networks:
+      - docker_compose_big_data_airflow
+
+  airflow-init:
+    image: ${AIRFLOW_IMAGE}
+    container_name: airflow-init
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=${AIRFLOW_EXECUTOR}
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      - _AIRFLOW_DB_UPGRADE=true
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=${AIRFLOW_ADMIN_USER}
+      - _AIRFLOW_WWW_USER_PASSWORD=${AIRFLOW_ADMIN_PASSWORD}
+    networks:
+      - docker_compose_big_data_airflow
+
+networks:
+  docker_compose_big_data_airflow:
+    external: true
+    name: ${SHARED_NETWORK_NAME}
