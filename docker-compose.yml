@@ -1,0 +1,13 @@
+services:
+  jupyter:
+    image: jupyter/pyspark-notebook:latest
+    container_name: jupyter
+    ports:
+      - "8888:8888"
+      - "4040:4040"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=admin
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    
